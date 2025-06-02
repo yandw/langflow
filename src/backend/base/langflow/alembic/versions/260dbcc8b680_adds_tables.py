@@ -112,7 +112,13 @@ def upgrade() -> None:
         if "user.id" not in existing_fks_flow:
             batch_op.create_foreign_key("fk_flow_user_id", "user", ["user_id"], ["id"])
         if "ix_flow_description" not in existing_indices_flow:
-            batch_op.create_index(batch_op.f("ix_flow_description"), ["description"], unique=False)
+            # Handle MySQL TEXT column index limitation
+            conn = op.get_bind()
+            if conn.dialect.name == "mysql":
+                # MySQL requires length specification for TEXT column indexes
+                batch_op.create_index("ix_flow_description", [sa.text("description(255)")], unique=False)
+            else:
+                batch_op.create_index(batch_op.f("ix_flow_description"), ["description"], unique=False)
         if "ix_flow_name" not in existing_indices_flow:
             batch_op.create_index(batch_op.f("ix_flow_name"), ["name"], unique=False)
     with op.batch_alter_table("flow", schema=None) as batch_op:
@@ -133,7 +139,12 @@ def downgrade() -> None:
         with op.batch_alter_table("flow", schema=None) as batch_op:
             batch_op.drop_index(batch_op.f("ix_flow_user_id"), if_exists=True)
             batch_op.drop_index(batch_op.f("ix_flow_name"), if_exists=True)
-            batch_op.drop_index(batch_op.f("ix_flow_description"), if_exists=True)
+            # Handle MySQL TEXT column index limitation in downgrade
+            conn = op.get_bind()
+            if conn.dialect.name == "mysql":
+                batch_op.drop_index("ix_flow_description", if_exists=True)
+            else:
+                batch_op.drop_index(batch_op.f("ix_flow_description"), if_exists=True)
 
         op.drop_table("flow")
     if "apikey" in existing_tables:

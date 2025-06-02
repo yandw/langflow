@@ -91,7 +91,7 @@ def upgrade() -> None:
             FROM (
                 SELECT timestamp, id, data, artifacts, params, build_id, flow_id, valid,
                        ROW_NUMBER() OVER (PARTITION BY build_id ORDER BY timestamp) as rn
-                FROM "vertex_build"
+                FROM `vertex_build`
                 WHERE id IS NOT NULL -- Ensure vertex id is not NULL
             ) sub
             WHERE rn = 1
@@ -131,7 +131,7 @@ def upgrade() -> None:
         op.execute(f'''
             INSERT INTO "{temp_table_name}" (timestamp, vertex_id, target_id, inputs, outputs, status, id, flow_id, error)
             SELECT timestamp, vertex_id, target_id, inputs, outputs, status, id, flow_id, error
-            FROM "transaction"
+            FROM `transaction`
             WHERE id IS NOT NULL
         ''')
 
@@ -173,7 +173,7 @@ def upgrade() -> None:
         op.execute(f'''
             INSERT INTO "{temp_table_name}" (timestamp, sender, sender_name, session_id, text, id, flow_id, files, error, edit, properties, category, content_blocks)
             SELECT timestamp, sender, sender_name, session_id, text, id, flow_id, files, error, edit, properties, category, content_blocks
-            FROM "message"
+            FROM `message`
             WHERE id IS NOT NULL
         ''')
 
@@ -229,7 +229,7 @@ def downgrade() -> None:
             FROM (
                 SELECT timestamp, id, data, artifacts, params, build_id, flow_id, valid,
                        ROW_NUMBER() OVER (PARTITION BY build_id ORDER BY timestamp) as rn
-                FROM "vertex_build"
+                FROM `vertex_build`
                 WHERE build_id IS NOT NULL -- Ensure primary key is not NULL
             ) sub
             WHERE rn = 1
@@ -277,7 +277,7 @@ def downgrade() -> None:
         op.execute(f'''
             INSERT INTO "{temp_table_name}" (timestamp, vertex_id, target_id, inputs, outputs, status, id, flow_id, error)
             SELECT timestamp, vertex_id, target_id, inputs, outputs, status, id, flow_id, error
-            FROM "transaction"
+            FROM `transaction`
             WHERE id IS NOT NULL
         ''')
 
@@ -327,7 +327,7 @@ def downgrade() -> None:
         op.execute(f'''
             INSERT INTO "{temp_table_name}" (timestamp, sender, sender_name, session_id, text, id, flow_id, files, error, edit, properties, category, content_blocks)
             SELECT timestamp, sender, sender_name, session_id, text, id, flow_id, files, error, edit, properties, category, content_blocks
-            FROM "message"
+            FROM `message`
             WHERE id IS NOT NULL
         ''')
 

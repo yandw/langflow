@@ -104,6 +104,8 @@ dependencies = [
     "aiofile>=3.9.0,<4.0.0",
     "sseclient-py==1.8.0",
     "arize-phoenix-otel>=0.6.1",
+    "greenlet>=3.0.0",
+    "cython>=3.0.0",
     "openinference-instrumentation-langchain>=0.1.29",
     "crewai==0.102.0",
     "mcp>=0.9.1",
@@ -199,6 +201,10 @@ couchbase = [
 ]
 cassio = [
     "cassio>=0.1.7"
+]
+mysql = [
+    "asyncmy>=0.2.9",
+    "sqlalchemy[mysql]"
 ]
 local = [
     "llama-cpp-python~=0.2.0",

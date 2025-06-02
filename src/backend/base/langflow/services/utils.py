@@ -180,18 +180,27 @@ async def clean_transactions(settings_service: SettingsService, session: AsyncSe
         session: The database session to use for the deletion
     """
     try:
-        # Delete transactions using bulk delete
-        delete_stmt = delete(TransactionTable).where(
-            col(TransactionTable.id).in_(
-                select(TransactionTable.id)
-                .order_by(col(TransactionTable.timestamp).desc())
-                .offset(settings_service.settings.max_transactions_to_keep)
-            )
+        # First, get the IDs to delete using a subquery approach compatible with MySQL
+        subquery = (
+            select(TransactionTable.id)
+            .order_by(col(TransactionTable.timestamp).desc())
+            .offset(settings_service.settings.max_transactions_to_keep)
         )
-
-        await session.exec(delete_stmt)
-        await session.commit()
-        logger.debug("Successfully cleaned up old transactions")
+        
+        # Execute the subquery to get the IDs
+        result = await session.exec(subquery)
+        ids_to_delete = [row for row in result]
+        
+        if ids_to_delete:
+            # Delete transactions using the collected IDs
+            delete_stmt = delete(TransactionTable).where(
+                col(TransactionTable.id).in_(ids_to_delete)
+            )
+            await session.exec(delete_stmt)
+            await session.commit()
+            logger.debug(f"Successfully cleaned up {len(ids_to_delete)} old transactions")
+        else:
+            logger.debug("No old transactions to clean up")
     except (sqlalchemy_exc.SQLAlchemyError, asyncio.TimeoutError) as exc:
         logger.error(f"Error cleaning up transactions: {exc!s}")
         await session.rollback()
@@ -209,18 +218,27 @@ async def clean_vertex_builds(settings_service: SettingsService, session: AsyncS
         session: The database session to use for the deletion
     """
     try:
-        # Delete vertex builds using bulk delete
-        delete_stmt = delete(VertexBuildTable).where(
-            col(VertexBuildTable.id).in_(
-                select(VertexBuildTable.id)
-                .order_by(col(VertexBuildTable.timestamp).desc())
-                .offset(settings_service.settings.max_vertex_builds_to_keep)
-            )
+        # First, get the IDs to delete using a subquery approach compatible with MySQL
+        subquery = (
+            select(VertexBuildTable.id)
+            .order_by(col(VertexBuildTable.timestamp).desc())
+            .offset(settings_service.settings.max_vertex_builds_to_keep)
         )
-
-        await session.exec(delete_stmt)
-        await session.commit()
-        logger.debug("Successfully cleaned up old vertex builds")
+        
+        # Execute the subquery to get the IDs
+        result = await session.exec(subquery)
+        ids_to_delete = [row for row in result]
+        
+        if ids_to_delete:
+            # Delete vertex builds using the collected IDs
+            delete_stmt = delete(VertexBuildTable).where(
+                col(VertexBuildTable.id).in_(ids_to_delete)
+            )
+            await session.exec(delete_stmt)
+            await session.commit()
+            logger.debug(f"Successfully cleaned up {len(ids_to_delete)} old vertex builds")
+        else:
+            logger.debug("No old vertex builds to clean up")
     except (sqlalchemy_exc.SQLAlchemyError, asyncio.TimeoutError) as exc:
         logger.error(f"Error cleaning up vertex builds: {exc!s}")
         await session.rollback()

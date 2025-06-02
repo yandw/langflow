@@ -52,21 +52,31 @@ async def log_transaction(db: AsyncSession, transaction: TransactionBase) -> Tra
         # Get max entries setting
         max_entries = get_settings_service().settings.max_transactions_to_keep
 
-        # Delete older entries in a single transaction
-        delete_older = delete(TransactionTable).where(
-            TransactionTable.flow_id == transaction.flow_id,
-            col(TransactionTable.id).in_(
-                select(TransactionTable.id)
-                .where(TransactionTable.flow_id == transaction.flow_id)
-                .order_by(col(TransactionTable.timestamp).desc())
-                .offset(max_entries - 1)  # Keep newest max_entries-1 plus the one we're adding
-            ),
-        )
-
-        # Add new entry and execute delete in same transaction
+        # Add new entry first
         db.add(table)
-        await db.exec(delete_older)
+        
+        # Get IDs of transactions to keep (newest max_entries including the one we just added)
+        keep_ids_stmt = (
+            select(TransactionTable.id)
+            .where(TransactionTable.flow_id == transaction.flow_id)
+            .order_by(col(TransactionTable.timestamp).desc())
+            .limit(max_entries)
+        )
+        keep_ids_result = await db.exec(keep_ids_stmt)
+        keep_ids = [row for row in keep_ids_result]
+        
+        if len(keep_ids) >= max_entries:
+            # Delete transactions that are not in the keep_ids list
+            delete_older = delete(TransactionTable).where(
+                TransactionTable.flow_id == transaction.flow_id,
+                ~col(TransactionTable.id).in_(keep_ids)
+            )
+            await db.exec(delete_older)
+        
         await db.commit()
+        
+        logger.debug(f"Logged transaction for flow {transaction.flow_id} and maintained limit of {max_entries}")
+
 
     except Exception:
         await db.rollback()

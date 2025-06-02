@@ -96,6 +96,8 @@ class DatabaseService(Service):
                     "To avoid this warning, update the database URL."
                 )
             driver = "postgresql+psycopg"
+        elif driver == "mysql":
+            driver = "mysql+asyncmy"
 
         self.database_url = f"{driver}://{url_components[1]}"
 
@@ -154,6 +156,12 @@ class DatabaseService(Service):
             return {
                 "check_same_thread": False,
                 "timeout": settings.db_connect_timeout,
+            }
+        elif settings.database_url and settings.database_url.startswith("mysql"):
+            return {
+                "charset": "utf8mb4",
+                "use_unicode": True,
+                "autocommit": False,
             }
 
         return {}

@@ -63,9 +63,13 @@ reinstall_backend: ## forces reinstall all dependencies (no caching)
 	@echo 'Installing backend dependencies'
 	@uv sync -n --reinstall --frozen
 
-install_backend: ## install the backend dependencies
+install_backend_postgresql: ## install the backend dependencies
 	@echo 'Installing backend dependencies'
 	@uv sync --frozen --extra "postgresql" $(EXTRA_ARGS)
+
+install_backend: ## install the backend dependencies
+	@echo 'Installing backend dependencies'
+	@uv sync --frozen --extra "mysql" $(EXTRA_ARGS)
 
 install_frontend: ## install the frontend dependencies
 	@echo 'Installing frontend dependencies'
